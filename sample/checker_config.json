@@ -1,0 +1,90 @@
+{
+    "fetchers": [
+        {
+            "type": "BQ_DATA_FETCHER",
+            "name": "count_requests",
+            "sql": "SELECT event_date, source_system, os, sum(count) as requests \n FROM your_project.your_dataset.metrics_requests \n WHERE event_date = {execution_date} \n GROUP BY 1, 2, 3",
+            "intervals": ["1 DAY"]
+        },
+        {
+            "type": "BQ_DATA_FETCHER",
+            "name": "count_sessions",
+            "sql": " SELECT PROCESSED_DATE, count(1) as sessions \n FROM your_project.your_dataset.metrics_sessions \n WHERE PROCESSED_DATE = {execution_date} \n GROUP BY 1",
+            "intervals": ["1 DAY", "1 WEEK"]
+        }
+    ],
+    "rules": [
+        {
+            "name": "known os types",
+            "type": "CROSS_SECTION",
+            "spec": {
+                "metric": ["count_requests.os"],
+                "function": "IN",
+                "list": ["ios", "other", "amx", "android"]
+            }
+        },
+        {
+            "name": "request above",
+            "type": "CROSS_SECTION",
+            "spec": {
+                "metric": ["count_requests.requests", 0],
+                "function": "GREATER_THAN",
+                "threshold": 0.2
+            }
+        },
+        {
+            "name": "request above oposite",
+            "type": "CROSS_SECTION",
+            "spec": {
+                "metric": [100, "count_requests.requests"],
+                "function": "GREATER_THAN",
+                "threshold": 0.2
+            }
+        },
+        {
+            "name": "request above threshold",
+            "type": "CROSS_SECTION",
+            "spec": {
+                "metric": ["count_requests.requests", 100],
+                "function": "RELATIVE_GREATER_THAN",
+                "threshold": 0.2
+            }
+        },
+        {
+            "name": "request above threshold oposite",
+            "type": "CROSS_SECTION",
+            "spec": {
+                "metric": [100, "count_requests.requests"],
+                "function": "RELATIVE_GREATER_THAN",
+                "threshold": 0.2
+            }
+        },
+        {
+            "name": "request above THRESHOLD",
+            "type": "TIME_SERIES",
+            "spec": {
+                "metric": "count_sessions.sessions",
+                "threshold": 0.2,
+                "function": "RELATIVE_GREATER_THAN"
+            }
+        },
+        {
+            "name": "request above threshold by dimensions",
+            "type": "TIME_SERIES",
+            "spec": {
+                "metric": "count_requests.requests",
+                "function": "RELATIVE_GREATER_THAN",
+                "threshold": 0.20,
+                "dimensions": ["source_system", "os"]
+            },
+            "fail_task": true
+        }
+    ]
+    ,
+    "actions": [
+        {
+            "type": "PRINT",
+            "address": "your_email@gmail.com"
+        }
+    ]
+}

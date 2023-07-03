@@ -1,0 +1,52 @@
+{
+   "fetchers":[
+      {
+         "type":"BQ_DATA_FETCHER",
+         "name":"count_requests",
+         "sql":"SELECT PROCESSED_DATE, sum(count) as requests \n FROM your_project.your_dataset.metrics_requests \n WHERE PROCESSED_DATE = {execution_date} \n GROUP BY 1",
+         "intervals":[
+            "1 DAY",
+            "1 WEEK"
+         ]
+      },
+      {
+         "type":"BQ_DATA_FETCHER",
+         "name":"count_requests_by_source",
+         "sql":"SELECT PROCESSED_DATE, USER_ID_SOURCE, sum(count) as requests \n FROM your_project.your_dataset.metrics_requests \n WHERE PROCESSED_DATE = {execution_date} \n GROUP BY 1, 2",
+         "intervals":[
+            "1 DAY",
+            "1 WEEK"
+         ]
+      }
+   ],
+   "rules":[
+      {
+         "name":"Requests Over time change",
+         "type":"TIME_SERIES",
+         "spec":{
+            "metric":"count_requests.requests",
+            "function":"RELATIVE_SMALLER_THAN",
+            "threshold":0.2
+         }
+      },
+      {
+         "name":"Requests Over time change change by USER_ID_SOURCE",
+         "type":"TIME_SERIES",
+         "spec":{
+            "metric":"count_requests_by_source.requests",
+            "function":"RELATIVE_SMALLER_THAN",
+            "dimensions":[
+               "USER_ID_SOURCE"
+            ],
+            "threshold":0.2
+         }
+      }
+   ],
+   "actions":[
+      {
+         "type":"SEND_MAIL",
+         "address":"your_email@gmail.com",
+         "always_send":true
+      }
+   ]
+}
